@@ -1,0 +1,6 @@
+injection_block_threshold: 0.80
+injection_warn_threshold: 0.50
+leakage_block_threshold: 0.85
+pii_input_action: redact
+pii_output_action: redact
+system_prompt: ""
