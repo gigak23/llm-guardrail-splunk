@@ -3,19 +3,24 @@ services:
     build: .
     command: uvicorn proxy.main:app --host 0.0.0.0 --port 8000
     ports: ["8000:8000"]
-    env_file: [.env]
+    env_file:
+      - path: .env
+        required: false
     environment:
       SPLUNK_HEC_URL: https://splunk:8088/services/collector/event
+      # Local Splunk uses a self-signed HEC cert; never disable in prod.
+      SPLUNK_HEC_VERIFY_SSL: "false"
   splunk:
     image: splunk/splunk:latest
     ports: ["8001:8000", "8088:8088"]
     environment:
       SPLUNK_START_ARGS: --accept-license
-      SPLUNK_PASSWORD: ChangeMe123!
-      SPLUNK_HEC_TOKEN: ""
+      SPLUNK_PASSWORD: ${SPLUNK_PASSWORD:?set SPLUNK_PASSWORD in .env or the shell - do not commit it}
+      SPLUNK_HEC_TOKEN: ${SPLUNK_HEC_TOKEN:-}
     volumes: [splunk-data:/opt/splunk/var]
 volumes:
   splunk-data:
-# Notes: set a real SPLUNK_PASSWORD/HEC token locally, enable HEC in Splunk
-# (Settings > Data inputs > HTTP Event Collector), copy splunk/app into
-# $SPLUNK_HOME/etc/apps/llm_guardrail, and set SPLUNK_HEC_TOKEN in .env.
+# Notes: set a real SPLUNK_PASSWORD/HEC token locally (see .env.example),
+# enable HEC in Splunk (Settings > Data inputs > HTTP Event Collector),
+# copy splunk/app into $SPLUNK_HOME/etc/apps/llm_guardrail, and set
+# SPLUNK_HEC_TOKEN in .env. No password or token is committed to this repo.

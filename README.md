@@ -59,6 +59,15 @@ curl -s localhost:8000/v1/chat/completions -H 'Content-Type: application/json' \
 With Splunk: run `docker compose up`, create an HEC token, set
 `SPLUNK_HEC_URL` / `SPLUNK_HEC_TOKEN` in `.env`, and import `splunk/app`.
 
+## Status
+
+MVP built and unit-tested (15 pytest tests). Splunk integration validated
+2026-10-21 against a **mock HEC endpoint** (HEC payload format, decisions,
+no raw PII in events, and all 5 detection conditions firing on synthetic
+data) — a live Docker Splunk test was not possible in the build
+environment (no Docker, low RAM), so real Splunk ingestion/search is not
+yet verified. Full details: `docs/live-test.md`.
+
 ## Layout
 
 | Path | What |

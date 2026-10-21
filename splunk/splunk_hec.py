@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import os
+import ssl
 import sys
 import urllib.request
 
@@ -30,10 +31,15 @@ def build_event(**fields) -> dict:
 
 class SplunkHECClient:
     def __init__(self, url: str | None = None, token: str | None = None,
-                 index: str | None = None):
+                 index: str | None = None, verify_ssl: bool | None = None):
         self.url = url if url is not None else os.getenv("SPLUNK_HEC_URL", "")
         self.token = token if token is not None else os.getenv("SPLUNK_HEC_TOKEN", "")
         self.index = index or os.getenv("SPLUNK_INDEX", "llm_events")
+        # Splunk's default HEC endpoint uses a self-signed cert, so local /
+        # Docker setups need SPLUNK_HEC_VERIFY_SSL=false. Default stays True.
+        if verify_ssl is None:
+            verify_ssl = os.getenv("SPLUNK_HEC_VERIFY_SSL", "true").lower() != "false"
+        self.verify_ssl = verify_ssl
 
     @property
     def configured(self) -> bool:
@@ -49,8 +55,13 @@ class SplunkHECClient:
             self.url, data=json.dumps(payload).encode(),
             headers={"Authorization": f"Splunk {self.token}",
                      "Content-Type": "application/json"}, method="POST")
+        context = None
+        if self.url.startswith("https://") and not self.verify_ssl:
+            context = ssl.create_default_context()
+            context.check_hostname = False
+            context.verify_mode = ssl.CERT_NONE
         try:
-            with urllib.request.urlopen(req, timeout=5) as resp:  # noqa: S310
+            with urllib.request.urlopen(req, timeout=5, context=context) as resp:  # noqa: S310
                 return 200 <= resp.status < 300
         except Exception:
             print(json.dumps(payload), file=sys.stdout, flush=True)
